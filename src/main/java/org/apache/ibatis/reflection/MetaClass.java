@@ -27,15 +27,20 @@ import org.apache.ibatis.reflection.invoker.MethodInvoker;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
+ *
+ *  元数据Class
+ *
  * @author Clinton Begin
  */
 public class MetaClass {
-
+  // Reflector 工厂
   private final ReflectorFactory reflectorFactory;
+  // Reflector 对象
   private final Reflector reflector;
 
   private MetaClass(Class<?> type, ReflectorFactory reflectorFactory) {
     this.reflectorFactory = reflectorFactory;
+    // 通过工厂加载对象
     this.reflector = reflectorFactory.findForClass(type);
   }
 

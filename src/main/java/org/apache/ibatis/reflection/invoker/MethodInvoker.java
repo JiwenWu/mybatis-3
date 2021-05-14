@@ -21,6 +21,9 @@ import java.lang.reflect.Method;
 import org.apache.ibatis.reflection.Reflector;
 
 /**
+ *
+ *  方法调用器
+ *
  * @author Clinton Begin
  */
 public class MethodInvoker implements Invoker {
@@ -30,10 +33,11 @@ public class MethodInvoker implements Invoker {
 
   public MethodInvoker(Method method) {
     this.method = method;
-
+    // 有点取巧 参数是一个的，一般是setter参数，设置type为这个参数的
     if (method.getParameterTypes().length == 1) {
       type = method.getParameterTypes()[0];
     } else {
+      // 否则就是getter方法
       type = method.getReturnType();
     }
   }
@@ -44,6 +48,7 @@ public class MethodInvoker implements Invoker {
       return method.invoke(target, args);
     } catch (IllegalAccessException e) {
       if (Reflector.canControlMemberAccessible()) {
+        // 如果异常，设置可操作再试一下
         method.setAccessible(true);
         return method.invoke(target, args);
       } else {

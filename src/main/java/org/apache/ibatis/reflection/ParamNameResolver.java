@@ -31,6 +31,7 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 
+//方法参数名称解析器 @param
 public class ParamNameResolver {
 
   public static final String GENERIC_NAME_PREFIX = "param";
@@ -50,17 +51,22 @@ public class ParamNameResolver {
    * <li>aMethod(int a, RowBounds rb, int b) -&gt; {{0, "0"}, {2, "1"}}</li>
    * </ul>
    */
+  // 参数名映射集合key - 参数顺序 value 参数名
   private final SortedMap<Integer, String> names;
-
+  // 是否包含@Params注解
   private boolean hasParamAnnotation;
 
   public ParamNameResolver(Configuration config, Method method) {
+    // 是否使用真实的参数名 默认true
     this.useActualParamName = config.isUseActualParamName();
+    // 获取参数类型数组
     final Class<?>[] paramTypes = method.getParameterTypes();
+    // 获取方法中参数带有注解的数组
     final Annotation[][] paramAnnotations = method.getParameterAnnotations();
     final SortedMap<Integer, String> map = new TreeMap<>();
     int paramCount = paramAnnotations.length;
     // get names from @Param annotations
+    // 按参数个数进行迭代
     for (int paramIndex = 0; paramIndex < paramCount; paramIndex++) {
       if (isSpecialParameter(paramTypes[paramIndex])) {
         // skip special parameters
@@ -68,17 +74,21 @@ public class ParamNameResolver {
       }
       String name = null;
       for (Annotation annotation : paramAnnotations[paramIndex]) {
+        // 如果是@Param注解，获取注解中的值作为value
         if (annotation instanceof Param) {
           hasParamAnnotation = true;
           name = ((Param) annotation).value();
           break;
         }
       }
+      // 没有注解
       if (name == null) {
         // @Param was not specified.
         if (useActualParamName) {
+          // 使用真实参数名
           name = getActualParamName(method, paramIndex);
         }
+        // 如果还没有获取到 就只能以索引值代替了
         if (name == null) {
           // use the parameter index as the name ("0", "1", ...)
           // gcode issue #71
@@ -119,17 +129,28 @@ public class ParamNameResolver {
    *          the args
    * @return the named params
    */
+  // 根据参数值返回参数名称与参数值的映射关系
   public Object getNamedParams(Object[] args) {
+    // 参数个数
     final int paramCount = names.size();
     if (args == null || paramCount == 0) {
+      // 没有参数直接返回null
       return null;
     } else if (!hasParamAnnotation && paramCount == 1) {
+      //只有1个参数，并且没有 @Param 注解
       Object value = args[names.firstKey()];
+      // 兼容了集合参数的情况，单参数集合下也许可以不用指定@Param("list") 这样的写法
       return wrapToMapIfCollection(value, useActualParamName ? names.get(0) : null);
     } else {
+      /*
+       * 参数名称与值的映射，包含以下两种组合数据：
+       * 组合1：(参数名,值)
+       * 组合2：(param+参数顺序,值)
+       */
       final Map<String, Object> param = new ParamMap<>();
       int i = 0;
       for (Map.Entry<Integer, String> entry : names.entrySet()) {
+        //
         param.put(entry.getValue(), args[entry.getKey()]);
         // add generic param names (param1, param2, ...)
         final String genericParamName = GENERIC_NAME_PREFIX + (i + 1);
@@ -153,10 +174,13 @@ public class ParamNameResolver {
    * @since 3.5.5
    */
   public static Object wrapToMapIfCollection(Object object, String actualParamName) {
+    // 判断参数是否是集合
     if (object instanceof Collection) {
       ParamMap<Object> map = new ParamMap<>();
+      // 默认使用collection
       map.put("collection", object);
       if (object instanceof List) {
+        // 具体到list
         map.put("list", object);
       }
       Optional.ofNullable(actualParamName).ifPresent(name -> map.put(name, object));

@@ -43,32 +43,48 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
 import org.apache.ibatis.util.MapUtil;
 
 /**
+ * 保存Class中的信息
+ *
  * This class represents a cached set of class definition information that
  * allows for easy mapping between property names and getter/setter methods.
  *
  * @author Clinton Begin
  */
 public class Reflector {
-
+  // class 类信息
   private final Class<?> type;
+  // 可读属性数组
   private final String[] readablePropertyNames;
+  // 可写属性数组
   private final String[] writablePropertyNames;
+  // set方法集合（属性名，invoke）
   private final Map<String, Invoker> setMethods = new HashMap<>();
+  // get方法集合（属性名，invoke）
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  // set方法中参数类型
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+  // get方法中的返回类型
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  // 默认的构造方法
   private Constructor<?> defaultConstructor;
-
+  // 所有的属性集合 key-大写的属性名称 value 属性名称
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
     type = clazz;
+    // 添加默认的构造函数（参数为零的）
     addDefaultConstructor(clazz);
+    // 添加get方法
     addGetMethods(clazz);
+    // 添加set方法
     addSetMethods(clazz);
+    // 添加所有的属性字段
     addFields(clazz);
+    // 可读属性集合
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
+    // 可写属性集合
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
+    // 大写后再放入属性集合，当然啊，这里可能是会发生key覆盖的，我们一般属性都会提供set/get
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }
@@ -107,6 +123,7 @@ public class Reflector {
           if (!boolean.class.equals(candidateType)) {
             isAmbiguous = true;
             break;
+            // 对属性is开头的特殊处理
           } else if (candidate.getName().startsWith("is")) {
             winner = candidate;
           }
@@ -173,7 +190,7 @@ public class Reflector {
       }
     }
   }
-
+  // 选择最好的setter方法
   private Method pickBetterSetter(Method setter1, Method setter2, String property) {
     if (setter1 == null) {
       return setter2;

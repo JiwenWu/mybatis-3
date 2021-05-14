@@ -41,17 +41,21 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 /**
+ *
+ * XPathParser 解析器 基于JavaXPath 主要用于解析Xml文件（配置文件和Mapper.xml）
+ *
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
 public class XPathParser {
-
+  // xml document 对象
   private final Document document;
   private boolean validation;
   private EntityResolver entityResolver;
   private Properties variables;
   private XPath xpath;
 
+  // 各种参数构造函数，加载document对象
   public XPathParser(String xml) {
     commonConstructor(false, null, null);
     this.document = createDocument(new InputSource(new StringReader(xml)));
@@ -211,14 +215,24 @@ public class XPathParser {
     return evalNode(document, expression);
   }
 
+  // 获取节点Node对象
   public XNode evalNode(Object root, String expression) {
+    // 返回的是节点Node
     Node node = (Node) evaluate(expression, root, XPathConstants.NODE);
     if (node == null) {
       return null;
     }
+    // 封装成XNode对象
     return new XNode(this, node, variables);
   }
 
+  /**
+   * 获取xml节点中的信息
+   * @param expression 路径 /config/name
+   * @param root document对象
+   * @param returnType 返回类型
+   * @return
+   */
   private Object evaluate(String expression, Object root, QName returnType) {
     try {
       return xpath.evaluate(expression, root, returnType);
@@ -227,6 +241,11 @@ public class XPathParser {
     }
   }
 
+  /**
+   * 创建xml document对象
+   * @param inputSource
+   * @return
+   */
   private Document createDocument(InputSource inputSource) {
     // important: this must only be called AFTER common constructor
     try {

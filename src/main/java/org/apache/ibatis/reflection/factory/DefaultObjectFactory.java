@@ -34,6 +34,8 @@ import org.apache.ibatis.reflection.ReflectionException;
 import org.apache.ibatis.reflection.Reflector;
 
 /**
+ *  默认的对象工厂，主要用户创建class对象
+ *
  * @author Clinton Begin
  */
 public class DefaultObjectFactory implements ObjectFactory, Serializable {
@@ -61,6 +63,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
         try {
           return constructor.newInstance();
         } catch (IllegalAccessException e) {
+          // 如果异常，调用Reflector 进行实例化
           if (Reflector.canControlMemberAccessible()) {
             constructor.setAccessible(true);
             return constructor.newInstance();

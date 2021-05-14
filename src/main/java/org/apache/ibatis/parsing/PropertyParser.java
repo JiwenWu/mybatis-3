@@ -18,6 +18,9 @@ package org.apache.ibatis.parsing;
 import java.util.Properties;
 
 /**
+ *
+ * 动态属性解析器
+ *
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
@@ -25,6 +28,7 @@ public class PropertyParser {
 
   private static final String KEY_PREFIX = "org.apache.ibatis.parsing.PropertyParser.";
   /**
+   * 是否开启默认值替换
    * The special property key that indicate whether enable a default value on placeholder.
    * <p>
    *   The default value is {@code false} (indicate disable a default value on placeholder)
@@ -35,6 +39,7 @@ public class PropertyParser {
   public static final String KEY_ENABLE_DEFAULT_VALUE = KEY_PREFIX + "enable-default-value";
 
   /**
+   * 默认值替换分隔符设置
    * The special property key that specify a separator for key and default value on placeholder.
    * <p>
    *   The default separator is {@code ":"}.
@@ -44,14 +49,23 @@ public class PropertyParser {
   public static final String KEY_DEFAULT_VALUE_SEPARATOR = KEY_PREFIX + "default-value-separator";
 
   private static final String ENABLE_DEFAULT_VALUE = "false";
+  // 默认值的分隔符 如果没有找到则使用分隔符后的值
   private static final String DEFAULT_VALUE_SEPARATOR = ":";
 
   private PropertyParser() {
     // Prevent Instantiation
   }
 
+  /**
+   * 解析properties中的
+   * @param string ${name:wujw}
+   * @param variables properties
+   * @return
+   */
   public static String parse(String string, Properties variables) {
+    // variable标识助手
     VariableTokenHandler handler = new VariableTokenHandler(variables);
+    // 通过通用的Token标识解析器去解析
     GenericTokenParser parser = new GenericTokenParser("${", "}", handler);
     return parser.parse(string);
   }
@@ -75,21 +89,27 @@ public class PropertyParser {
     public String handleToken(String content) {
       if (variables != null) {
         String key = content;
+        // 是否开启默认值 org.apache.ibatis.parsing.PropertyParser.enable-default-value 默认false
         if (enableDefaultValue) {
+          // 默认分隔符 org.apache.ibatis.parsing.PropertyParser.default-value-separator 默认:
           final int separatorIndex = content.indexOf(defaultValueSeparator);
           String defaultValue = null;
+          // 有默认值
           if (separatorIndex >= 0) {
             key = content.substring(0, separatorIndex);
             defaultValue = content.substring(separatorIndex + defaultValueSeparator.length());
           }
+          // 默认值不为空 ，从properties中获取，如果没有则使用默认值
           if (defaultValue != null) {
             return variables.getProperty(key, defaultValue);
           }
         }
+        // 直接从properties中获取
         if (variables.containsKey(key)) {
           return variables.getProperty(key);
         }
       }
+      // 原样返回了
       return "${" + content + "}";
     }
   }

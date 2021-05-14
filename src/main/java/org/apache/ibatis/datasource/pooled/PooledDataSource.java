@@ -326,6 +326,9 @@ public class PooledDataSource implements DataSource {
 
   /**
    * Closes all active and idle connections in the pool.
+   *
+   * 关闭所有的空闲链接和活跃链接
+   *
    */
   public void forceCloseAll() {
     synchronized (state) {
@@ -419,24 +422,31 @@ public class PooledDataSource implements DataSource {
 
     while (conn == null) {
       synchronized (state) {
+        // 判断是否有空闲的链接
         if (!state.idleConnections.isEmpty()) {
           // Pool has available connection
+          // 直接拿出一个
           conn = state.idleConnections.remove(0);
           if (log.isDebugEnabled()) {
             log.debug("Checked out connection " + conn.getRealHashCode() + " from pool.");
           }
         } else {
           // Pool does not have available connection
+          // 小于最大可创建链接数（池大小）
           if (state.activeConnections.size() < poolMaximumActiveConnections) {
             // Can create new connection
+            // 创建新的链接
             conn = new PooledConnection(dataSource.getConnection(), this);
             if (log.isDebugEnabled()) {
               log.debug("Created connection " + conn.getRealHashCode() + ".");
             }
           } else {
-            // Cannot create new connection
+            // Cannot create new connection  已经达到上限了
+            // 拿到当前活跃的最早的链接
             PooledConnection oldestActiveConnection = state.activeConnections.get(0);
+            // 计算其耗时
             long longestCheckoutTime = oldestActiveConnection.getCheckoutTime();
+            // 超时
             if (longestCheckoutTime > poolMaximumCheckoutTime) {
               // Can claim overdue connection
               state.claimedOverdueConnectionCount++;
@@ -458,7 +468,9 @@ public class PooledDataSource implements DataSource {
                   log.debug("Bad connection. Could not roll back");
                 }
               }
+              // 创建新的链接
               conn = new PooledConnection(oldestActiveConnection.getRealConnection(), this);
+              // 移除超时链接
               conn.setCreatedTimestamp(oldestActiveConnection.getCreatedTimestamp());
               conn.setLastUsedTimestamp(oldestActiveConnection.getLastUsedTimestamp());
               oldestActiveConnection.invalidate();
@@ -466,7 +478,7 @@ public class PooledDataSource implements DataSource {
                 log.debug("Claimed overdue connection " + conn.getRealHashCode() + ".");
               }
             } else {
-              // Must wait
+              // Must wait 没有超时，等待
               try {
                 if (!countedWait) {
                   state.hadToWaitCount++;
@@ -484,24 +496,31 @@ public class PooledDataSource implements DataSource {
             }
           }
         }
+        // 拿到了链接
         if (conn != null) {
           // ping to server and check the connection is valid or not
+          // 是否有效可用
           if (conn.isValid()) {
+            // 如果没提交 回滚操作
             if (!conn.getRealConnection().getAutoCommit()) {
               conn.getRealConnection().rollback();
             }
             conn.setConnectionTypeCode(assembleConnectionTypeCode(dataSource.getUrl(), username, password));
+            // 设置获取时间
             conn.setCheckoutTimestamp(System.currentTimeMillis());
             conn.setLastUsedTimestamp(System.currentTimeMillis());
+            // 放入池中
             state.activeConnections.add(conn);
             state.requestCount++;
             state.accumulatedRequestTime += System.currentTimeMillis() - t;
           } else {
+            // 无效的链接
             if (log.isDebugEnabled()) {
               log.debug("A bad connection (" + conn.getRealHashCode() + ") was returned from the pool, getting another connection.");
             }
             state.badConnectionCount++;
             localBadConnectionCount++;
+            // 置null  报错处理
             conn = null;
             if (localBadConnectionCount > (poolMaximumIdleConnections + poolMaximumLocalBadConnectionTolerance)) {
               if (log.isDebugEnabled()) {
@@ -531,6 +550,9 @@ public class PooledDataSource implements DataSource {
    * @param conn
    *          - the connection to check
    * @return True if the connection is still usable
+   *
+   * ping 是否可用
+   *
    */
   protected boolean pingConnection(PooledConnection conn) {
     boolean result = true;

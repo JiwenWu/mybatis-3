@@ -23,6 +23,9 @@ import org.apache.ibatis.reflection.ReflectionException;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
+ *
+ *
+ *
  * @author Clinton Begin
  */
 public abstract class BaseWrapper implements ObjectWrapper {
